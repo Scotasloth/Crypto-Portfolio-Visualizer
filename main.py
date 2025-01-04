@@ -72,12 +72,19 @@ def addData(crypto, amount, val):
     )
     ''')
 
-    cursor.execute('''
-        INSERT INTO portfolio (crypto, amount, value) VALUES (?, ?, ?)
-        ''', (crypto, amount, val))
+    #Check if crypto being added exists in DB
+    cursor.execute('SELECT * FROM portfolio WHERE crypto = ?', (crypto,))
+    exists = cursor.fetchone()
+
+    if exists:
+        print(f"{crypto} already exists")
     
-    conn.commit()
-    conn.close()
+    else:
+        cursor.execute('''
+            INSERT INTO portfolio (crypto, amount, value) VALUES (?, ?, ?)
+            ''', (crypto, amount, val))
+        
+        conn.commit()
 
 def updateData(crypto, amount, val):
     return
