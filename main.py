@@ -80,11 +80,15 @@ def addData(crypto, amount, val):
         print(f"{crypto} already exists")
     
     else:
-        cursor.execute('''
-            INSERT INTO portfolio (crypto, amount, value) VALUES (?, ?, ?)
-            ''', (crypto, amount, val))
-        
-        conn.commit()
+        try:
+            cursor.execute('''
+                INSERT INTO portfolio (crypto, amount, value) VALUES (?, ?, ?)
+                ''', (crypto, amount, val))
+            
+            conn.commit()
+
+        except Exception as e:
+            print(f"Error {e}")
 
 def updateData(crypto, amount, val):
     return
@@ -93,7 +97,14 @@ def readData():
     return
 
 def delData(crypto):
-    print(crypto)
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('DELETE FROM portfolio WHERE crypto = ?', (crypto,))
+        conn.commit()
+
+    except Exception as e:
+        print(f"Error, {e}")
 
 if __name__ == "__main__":
    main()
