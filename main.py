@@ -22,13 +22,17 @@ def main():
 
 def displayGraphs(root, index):
     if index == 1:
+        # Create a new subwindow for the pie chart
         pieWin = CTkToplevel(master=root)
         pieWin.title("Pie Chart")
-        pieWin.geometry("600x400")
+        pieWin.geometry("800x600")  # Larger subwindow
 
-        frame = CTkFrame(pieWin).pack(padx=20, pady=20)
+        # Create a frame within the subwindow for the chart
+        frame = CTkFrame(pieWin)
+        frame.pack(fill='both', expand=True, padx=20, pady=20)  # Use the entire window space
 
-        displayBtn = CTkButton(master=pieWin, text="Create Graph", command=lambda: pieChart(pieWin, frame)).pack(pady=10)
+        # Directly create the pie chart in the subwindow
+        pieChart(pieWin, frame)
 
     elif index == 2:
         print("Not ready yet : )")
@@ -50,7 +54,9 @@ def pieChart(pieWin, frame):
 
     pieCanvas = FigureCanvasTkAgg(fig, master=frame)  # Embed the chart into the frame
     pieCanvas.draw()
-    pieCanvas.get_tk_widget().pack()
+    pieCanvas.get_tk_widget().pack(fill='both', expand=True)
+
+    
     
 
 def lineGraph():
