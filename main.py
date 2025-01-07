@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy
 import sqlite3
+import requests
 
-
+apiKey = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,litecoin&vs_currencies=gbp"
 conn = sqlite3.connect('portfolio.db')
 
 def main():
@@ -41,6 +42,9 @@ def destroyWin(root, subWin):
     subWin.destroy()
     root.deiconify()
 
+def getPrices():
+    response = requests.get(apiKey)
+
 def pieChart(pieWin, frame):
     data = readData()
 
@@ -55,9 +59,6 @@ def pieChart(pieWin, frame):
     pieCanvas = FigureCanvasTkAgg(fig, master=frame)  # Embed the chart into the frame
     pieCanvas.draw()
     pieCanvas.get_tk_widget().pack(fill='both', expand=True)
-
-    
-    
 
 def lineGraph():
     return
@@ -133,7 +134,25 @@ def addData(crypto, amount, val, root, addWin):
     destroyWin(root, addWin)
 
 def updateData(crypto, amount, val, root, upWin):
-     destroyWin(root, upWin)
+    try: 
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM portfolio WHERE crypto = ?", (crypto,))
+        existing = cursor.fetchone()
+
+        if existing:
+            cursor.execute('''
+                UPDATE portfolio
+                SET amount = ?, value = ?
+                WHERE crypto = ?
+            ''', (amount, val, crypto))
+
+            conn.commit()
+
+    except Exception as e:
+        print("Error, {e}")
+
+    destroyWin(root, upWin)
 
 def readData():
     cursor = conn.cursor()
