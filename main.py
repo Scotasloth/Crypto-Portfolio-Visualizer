@@ -4,8 +4,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy
 import sqlite3
 import requests
+import time
 
-apiKey = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,litecoin&vs_currencies=gbp"
 conn = sqlite3.connect('portfolio.db')
 
 def main():
@@ -18,6 +18,7 @@ def main():
     removeBtn = CTkButton(master=root, text="Remove", command=lambda: subWindow(root, 3)).pack(pady=10)
     pieBtn = CTkButton(master=root, text="Make Pie Chart", command=lambda: displayGraphs(root, 1)).pack(pady=10)
     lineBtn = CTkButton(master=root, text="Make Linegraph", command=lambda: displayGraphs(root, 2)).pack(pady=10)
+    priceBtn = CTkButton(master=root, text="Update Prices", command=lambda: updatePrice()).pack(pady=10)
 
     root.mainloop()
 
@@ -42,14 +43,50 @@ def destroyWin(root, subWin):
     subWin.destroy()
     root.deiconify()
 
-def getPrices():
+def getPrices(crypto):
+    print(f"checjing {crypto}")
+    cryptoStr = ','.join(crypto)
+
+    apiKey = f"https://api.coingecko.com/api/v3/simple/price?ids={cryptoStr}&vs_currencies=usd"
+
     response = requests.get(apiKey)
+    data = response.json()
+
+    if crypto in data:
+        print(data[crypto]["usd"])
+        return data[crypto]["usd"]
+    
+    if response.status_code == 429:
+        print("Rate limit exceeded. Sleeping for 60 seconds...")
+        time.sleep(60)  # Sleep for 60 seconds before retrying
+        response = requests.get(apiKey)  # Retry the request
+
+        return data[crypto]["usd"]
+    
+    if response.status_code == 200:
+        data = response.json()
+        print(data)
+    else:
+        print(f"Error: {response.status_code}")
+
+def updatePrice():
+    data = readData()
+
+    for crypto in data:
+        print (crypto[2])
+        cryptoId = crypto[2].lower()
+        price = getPrices(cryptoId)
+
+        if price is not None:
+            # Update the price for each cryptocurrency in the database
+            conn.execute("UPDATE portfolio SET pricegdp = ? WHERE crypto = ?", (price, crypto[0]))
+            conn.commit()
 
 def pieChart(pieWin, frame):
     data = readData()
 
     labels = [row[0] for row in data]
-    sizes = [row[2] for row in data]
+    sizes = [row[3] for row in data]
     #colors = []
 
     fig, ax = plt.subplots()
@@ -141,7 +178,22 @@ def updateData(crypto, amount, val, root, upWin):
         existing = cursor.fetchone()
 
         if existing:
-            cursor.execute('''
+            if amount == "":
+                cursor.execute('''
+                UPDATE portfolio
+                SET value = ?
+                WHERE crypto = ?
+            ''', (val, crypto))
+                
+            elif val == "":
+                cursor.execute('''
+                UPDATE portfolio
+                SET amount = ?,
+                WHERE crypto = ?
+            ''', (amount, crypto))
+
+            else:
+                cursor.execute('''
                 UPDATE portfolio
                 SET amount = ?, value = ?
                 WHERE crypto = ?
@@ -179,9 +231,9 @@ def delData(crypto, root, delWin):
         delWin.title("Remove Crypto")
         delWin.geometry("300x300")
 
-        coinEntry = CTkEntry(master=delWin, placeholder_text="Enter the name of the Crypto", textvariable=cryptoName).pack(pady=10)
+        coinEntry = CTkEntry(master=delWin, placeholder_text="Enter the name of the Crypto", textvariable=crypto).pack(pady=10)
 
-        enterBtn = CTkButton(master=delWin, text="Enter", command=lambda: delData(cryptoName.get())).pack(pady=10)
+        enterBtn = CTkButton(master=delWin, text="Enter", command=lambda: delData(crypto.get())).pack(pady=10)
 
         destroyWin(root, delWin)
 
